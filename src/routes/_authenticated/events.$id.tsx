@@ -105,12 +105,14 @@ function EventDetail() {
             {roster.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No registrations yet.</p>
             ) : (
-              roster.map((r) => (
+              roster.map((r) => {
+                const p = event.profilesMap[r.volunteer_id];
+                return (
                 <div key={r.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                   <div>
-                    <p className="font-medium text-sm">{r.profiles?.full_name ?? "Volunteer"}</p>
+                    <p className="font-medium text-sm">{p?.full_name ?? "Volunteer"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {r.profiles?.department ?? "—"} · registered {format(new Date(r.registered_at), "PP")}
+                      {p?.department ?? "—"} · registered {format(new Date(r.registered_at), "PP")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -123,7 +125,7 @@ function EventDetail() {
                     )}
                   </div>
                 </div>
-              ))
+              );})
             )}
           </div>
         </Card>
