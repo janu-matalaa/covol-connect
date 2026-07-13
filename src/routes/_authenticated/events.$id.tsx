@@ -24,11 +24,17 @@ function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*, event_registrations(id, volunteer_id, status, registered_at, profiles:profiles!event_registrations_volunteer_id_fkey(full_name, student_id, department))")
+        .select("*, event_registrations(id, volunteer_id, status, registered_at)")
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data;
+      const vids = (data.event_registrations ?? []).map((r) => r.volunteer_id);
+      const profilesMap: Record<string, { full_name: string | null; department: string | null; student_id: string | null }> = {};
+      if (vids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, full_name, department, student_id").in("id", vids);
+        (profs ?? []).forEach((p) => { profilesMap[p.id] = p; });
+      }
+      return { ...data, profilesMap };
     },
   });
 
