@@ -173,7 +173,7 @@ function OrganizerDashboard() {
         <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} />
         <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} />
         <StatCard icon={Users} label="Registrations" value={data!.registrations} delay={0.1} />
-        <StatCard icon={Award} label="Verified" value={data!.verified} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
