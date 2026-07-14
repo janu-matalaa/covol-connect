@@ -1,8 +1,9 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus } from "lucide-react";
+import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,8 +22,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/events", label: "Events", icon: Calendar },
+    { to: "/dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
+    { to: "/events" as const, label: "Events", icon: Calendar },
+    ...(role === "volunteer" ? [{ to: "/certificates" as const, label: "Certificates", icon: Award }] : []),
   ];
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
@@ -60,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Button>
               </Link>
             )}
+            <NotificationBell />
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

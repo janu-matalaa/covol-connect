@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Calendar, Users, Award, Clock, TrendingUp, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,20 +50,34 @@ function StatCard({ icon: Icon, label, value, delay = 0 }: { icon: React.Element
 
 function VolunteerDashboard() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["volunteer-dash", user!.id],
     queryFn: async () => {
-      const { data: regs } = await supabase
-        .from("event_registrations")
-        .select("id, status, events(id, title, start_at, location, service_hours, status)")
-        .eq("volunteer_id", user!.id);
+      const [{ data: regs }, { count: certCount }] = await Promise.all([
+        supabase
+          .from("event_registrations")
+          .select("id, status, events(id, title, start_at, location, service_hours, status)")
+          .eq("volunteer_id", user!.id),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("volunteer_id", user!.id),
+      ]);
       const list = regs ?? [];
       const attended = list.filter((r) => r.status === "attended");
       const upcoming = list.filter((r) => r.status === "registered" && r.events && new Date(r.events.start_at) > new Date());
       const hours = attended.reduce((s, r) => s + Number(r.events?.service_hours ?? 0), 0);
-      return { total: list.length, attended: attended.length, upcoming, hours };
+      return { total: list.length, attended: attended.length, upcoming, hours, certs: certCount ?? 0 };
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`vol-dash-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations", filter: `volunteer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["volunteer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates", filter: `volunteer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["volunteer-dash", user.id] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -77,7 +92,7 @@ function VolunteerDashboard() {
         <StatCard icon={Clock} label="Service Hours" value={data!.hours.toFixed(1)} delay={0} />
         <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} />
         <StatCard icon={TrendingUp} label="Completed" value={data!.attended} delay={0.1} />
-        <StatCard icon={Award} label="Certificates" value={data!.attended} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
@@ -109,23 +124,38 @@ function VolunteerDashboard() {
 
 function OrganizerDashboard() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["organizer-dash", user!.id],
     queryFn: async () => {
-      const { data: events } = await supabase
-        .from("events")
-        .select("id, title, status, start_at, service_hours, event_registrations(id, status)")
-        .eq("organizer_id", user!.id)
-        .order("start_at", { ascending: false });
+      const [{ data: events }, { count: certCount }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, status, start_at, service_hours, event_registrations(id, status)")
+          .eq("organizer_id", user!.id)
+          .order("start_at", { ascending: false }),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("organizer_id", user!.id),
+      ]);
       const list = events ?? [];
       const published = list.filter((e) => e.status === "published");
       const upcoming = published.filter((e) => new Date(e.start_at) > new Date());
       const registrations = list.flatMap((e) => e.event_registrations ?? []);
       const verified = registrations.filter((r) => r.status === "attended").length;
       const hours = list.reduce((s, e) => s + Number(e.service_hours) * (e.event_registrations?.filter((r) => r.status === "attended").length ?? 0), 0);
-      return { total: list.length, upcoming: upcoming.length, published: published.length, registrations: registrations.length, verified, hours, recent: list.slice(0, 5) };
+      return { total: list.length, upcoming: upcoming.length, published: published.length, registrations: registrations.length, verified, hours, certs: certCount ?? 0, recent: list.slice(0, 5) };
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`org-dash-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `organizer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations" }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates", filter: `organizer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -143,7 +173,7 @@ function OrganizerDashboard() {
         <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} />
         <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} />
         <StatCard icon={Users} label="Registrations" value={data!.registrations} delay={0.1} />
-        <StatCard icon={Award} label="Verified" value={data!.verified} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
