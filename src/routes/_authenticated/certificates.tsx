@@ -22,9 +22,11 @@ type Cert = {
   certificate_code: string;
   service_hours: number;
   issued_at: string;
-  event: { title: string } | null;
-  volunteer: { full_name: string | null } | null;
-  organizer: { full_name: string | null } | null;
+  event_id: string;
+  organizer_id: string;
+  event_title: string;
+  volunteer_name: string;
+  organizer_name: string;
 };
 
 function CertificatesPage() {
@@ -37,13 +39,33 @@ function CertificatesPage() {
     queryKey: ["certificates", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: certs, error } = await supabase
         .from("certificates")
-        .select("id, certificate_code, service_hours, issued_at, event:events(title), volunteer:profiles!certificates_volunteer_id_fkey(full_name), organizer:profiles!certificates_organizer_id_fkey(full_name)")
+        .select("id, certificate_code, service_hours, issued_at, event_id, organizer_id, volunteer_id")
         .eq("volunteer_id", user!.id)
         .order("issued_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as Cert[];
+      const list = certs ?? [];
+      if (list.length === 0) return [] as Cert[];
+      const eventIds = [...new Set(list.map((c) => c.event_id))];
+      const profIds = [...new Set([...list.map((c) => c.organizer_id), user!.id])];
+      const [{ data: events }, { data: profs }] = await Promise.all([
+        supabase.from("events").select("id, title").in("id", eventIds),
+        supabase.from("profiles").select("id, full_name").in("id", profIds),
+      ]);
+      const eMap = new Map((events ?? []).map((e) => [e.id, e.title]));
+      const pMap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+      return list.map<Cert>((c) => ({
+        id: c.id,
+        certificate_code: c.certificate_code,
+        service_hours: Number(c.service_hours),
+        issued_at: c.issued_at,
+        event_id: c.event_id,
+        organizer_id: c.organizer_id,
+        event_title: eMap.get(c.event_id) ?? "Event",
+        volunteer_name: pMap.get(user!.id) ?? "Volunteer",
+        organizer_name: pMap.get(c.organizer_id) ?? "Organizer",
+      }));
     },
   });
 
@@ -60,10 +82,10 @@ function CertificatesPage() {
 
   const toData = (c: Cert): CertificateData => ({
     code: c.certificate_code,
-    volunteerName: c.volunteer?.full_name ?? "Volunteer",
-    eventName: c.event?.title ?? "Event",
-    organizerName: c.organizer?.full_name ?? "Organizer",
-    serviceHours: Number(c.service_hours),
+    volunteerName: c.volunteer_name,
+    eventName: c.event_title,
+    organizerName: c.organizer_name,
+    serviceHours: c.service_hours,
     issuedAt: c.issued_at,
   });
 
@@ -105,8 +127,8 @@ function CertificatesPage() {
               <Card className="p-6 border-border/60 shadow-card hover:shadow-glow transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{c.event?.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">by {c.organizer?.full_name ?? "Organizer"}</p>
+                    <p className="font-semibold truncate">{c.event_title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">by {c.organizer_name}</p>
                     <p className="mt-2 font-mono text-xs text-muted-foreground">{c.certificate_code}</p>
                   </div>
                   <Badge className="gradient-primary text-white border-0">{c.service_hours}h</Badge>
