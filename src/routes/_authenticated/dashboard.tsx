@@ -50,20 +50,34 @@ function StatCard({ icon: Icon, label, value, delay = 0 }: { icon: React.Element
 
 function VolunteerDashboard() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["volunteer-dash", user!.id],
     queryFn: async () => {
-      const { data: regs } = await supabase
-        .from("event_registrations")
-        .select("id, status, events(id, title, start_at, location, service_hours, status)")
-        .eq("volunteer_id", user!.id);
+      const [{ data: regs }, { count: certCount }] = await Promise.all([
+        supabase
+          .from("event_registrations")
+          .select("id, status, events(id, title, start_at, location, service_hours, status)")
+          .eq("volunteer_id", user!.id),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("volunteer_id", user!.id),
+      ]);
       const list = regs ?? [];
       const attended = list.filter((r) => r.status === "attended");
       const upcoming = list.filter((r) => r.status === "registered" && r.events && new Date(r.events.start_at) > new Date());
       const hours = attended.reduce((s, r) => s + Number(r.events?.service_hours ?? 0), 0);
-      return { total: list.length, attended: attended.length, upcoming, hours };
+      return { total: list.length, attended: attended.length, upcoming, hours, certs: certCount ?? 0 };
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`vol-dash-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations", filter: `volunteer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["volunteer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates", filter: `volunteer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["volunteer-dash", user.id] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -78,7 +92,7 @@ function VolunteerDashboard() {
         <StatCard icon={Clock} label="Service Hours" value={data!.hours.toFixed(1)} delay={0} />
         <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} />
         <StatCard icon={TrendingUp} label="Completed" value={data!.attended} delay={0.1} />
-        <StatCard icon={Award} label="Certificates" value={data!.attended} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
