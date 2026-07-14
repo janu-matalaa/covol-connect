@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Users, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ArrowLeft, CheckCircle2, Award, Download } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   component: EventDetail,
@@ -29,14 +31,35 @@ function EventDetail() {
         .single();
       if (error) throw error;
       const vids = (data.event_registrations ?? []).map((r) => r.volunteer_id);
-      const profilesMap: Record<string, { full_name: string | null; department: string | null; student_id: string | null }> = {};
+      const profilesMap: Record<string, { full_name: string | null; department: string | null; student_id: string | null; email: string | null; phone: string | null }> = {};
+      const certsMap: Record<string, { id: string; certificate_code: string }> = {};
       if (vids.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, full_name, department, student_id").in("id", vids);
+        const [{ data: profs }, { data: certs }] = await Promise.all([
+          supabase.from("profiles").select("id, full_name, department, student_id, email, phone").in("id", vids),
+          supabase.from("certificates").select("id, certificate_code, volunteer_id").eq("event_id", id).in("volunteer_id", vids),
+        ]);
         (profs ?? []).forEach((p) => { profilesMap[p.id] = p; });
+        (certs ?? []).forEach((c) => { certsMap[c.volunteer_id] = { id: c.id, certificate_code: c.certificate_code }; });
       }
-      return { ...data, profilesMap };
+      return { ...data, profilesMap, certsMap };
     },
   });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`event-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations", filter: `event_id=eq.${id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["event", id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates", filter: `event_id=eq.${id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["event", id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `id=eq.${id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["event", id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, qc]);
 
   const verify = useMutation({
     mutationFn: async ({ regId, attended }: { regId: string; attended: boolean }) => {
@@ -54,10 +77,52 @@ function EventDetail() {
     onError: (e) => toast.error(e.message),
   });
 
+  const generateCert = useMutation({
+    mutationFn: async (volunteerId: string) => {
+      if (!event) return;
+      const { error } = await supabase.from("certificates").insert({
+        volunteer_id: volunteerId,
+        event_id: event.id,
+        organizer_id: event.organizer_id,
+        service_hours: event.service_hours,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Certificate generated");
+      qc.invalidateQueries({ queryKey: ["event", id] });
+      qc.invalidateQueries({ queryKey: ["organizer-dash"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   if (isLoading || !event) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   const isOrganizer = role === "organizer" && event.organizer_id === user?.id;
   const roster = (event.event_registrations ?? []).filter((r) => r.status !== "cancelled");
+
+  const exportCSV = () => {
+    const rows: (string | number | null | undefined)[][] = [
+      ["Volunteer Name", "Student ID", "Email", "Phone", "Department", "Registration Date", "Attendance Status", "Certificate Status", "Service Hours"],
+    ];
+    for (const r of roster) {
+      const p = event.profilesMap[r.volunteer_id];
+      const cert = event.certsMap[r.volunteer_id];
+      rows.push([
+        p?.full_name ?? "",
+        p?.student_id ?? "",
+        p?.email ?? "",
+        p?.phone ?? "",
+        p?.department ?? "",
+        format(new Date(r.registered_at), "yyyy-MM-dd"),
+        r.status,
+        cert ? `Issued (${cert.certificate_code})` : "Not issued",
+        r.status === "attended" ? event.service_hours : 0,
+      ]);
+    }
+    const safe = event.title.replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+    downloadCSV(`${safe}_roster.csv`, rows);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-6">
@@ -100,32 +165,48 @@ function EventDetail() {
 
       {isOrganizer && (
         <Card className="p-6 border-border/60 shadow-card">
-          <h2 className="text-lg font-semibold">Roster ({roster.length})</h2>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-lg font-semibold">Roster ({roster.length})</h2>
+            <Button size="sm" variant="outline" onClick={exportCSV} disabled={roster.length === 0}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Export CSV
+            </Button>
+          </div>
           <div className="mt-4 space-y-2">
             {roster.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No registrations yet.</p>
             ) : (
               roster.map((r) => {
                 const p = event.profilesMap[r.volunteer_id];
+                const cert = event.certsMap[r.volunteer_id];
                 return (
-                <div key={r.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3">
-                  <div>
-                    <p className="font-medium text-sm">{p?.full_name ?? "Volunteer"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p?.department ?? "—"} · registered {format(new Date(r.registered_at), "PP")}
-                    </p>
+                  <div key={r.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3 flex-wrap gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{p?.full_name ?? "Volunteer"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p?.department ?? "—"} · {p?.email ?? "no email"} · registered {format(new Date(r.registered_at), "PP")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {r.status === "attended" ? (
+                        <Badge className="bg-success text-success-foreground gap-1"><CheckCircle2 className="h-3 w-3" /> Verified</Badge>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => verify.mutate({ regId: r.id, attended: true })}>
+                          Mark attended
+                        </Button>
+                      )}
+                      {r.status === "attended" && (
+                        cert ? (
+                          <Badge variant="outline" className="gap-1"><Award className="h-3 w-3" /> Certificate issued</Badge>
+                        ) : (
+                          <Button size="sm" className="gradient-primary text-white border-0 hover:opacity-90" onClick={() => generateCert.mutate(r.volunteer_id)} disabled={generateCert.isPending}>
+                            <Award className="h-3.5 w-3.5 mr-1" /> Generate Certificate
+                          </Button>
+                        )
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {r.status === "attended" ? (
-                      <Badge className="bg-success text-success-foreground gap-1"><CheckCircle2 className="h-3 w-3" /> Verified</Badge>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => verify.mutate({ regId: r.id, attended: true })}>
-                        Mark attended
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );})
+                );
+              })
             )}
           </div>
         </Card>
