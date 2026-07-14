@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Users, Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
@@ -31,11 +31,24 @@ function EventsList() {
       const { data } = await supabase
         .from("events")
         .select("*, event_registrations(id, volunteer_id, status)")
-        .in("status", ["published", "draft"])
         .order("start_at", { ascending: true });
       return data ?? [];
     },
   });
+
+  // Realtime: refresh event list on any events/registration change
+  useEffect(() => {
+    const ch = supabase
+      .channel("events-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
+        qc.invalidateQueries({ queryKey: ["events"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations" }, () => {
+        qc.invalidateQueries({ queryKey: ["events"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const register = useMutation({
     mutationFn: async (eventId: string) => {
@@ -67,11 +80,19 @@ function EventsList() {
 
   const now = new Date();
   const filtered = (events ?? [])
-    .filter((e) => (role === "organizer" ? true : e.status === "published"))
+    .filter((e) => {
+      // Volunteers never see draft/archived events
+      if (role === "volunteer") return e.status === "published" || e.status === "cancelled";
+      return true;
+    })
     .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()) || (e.category ?? "").toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
-      if (filter === "upcoming") return new Date(e.start_at) >= now;
-      if (filter === "past") return new Date(e.start_at) < now;
+      const start = new Date(e.start_at);
+      const end = new Date(e.end_at);
+      if (filter === "upcoming") return e.status === "published" && start >= now;
+      if (filter === "past") return end < now;
+      // All: hide drafts for volunteers is already handled above; for organizers show everything
+      if (role === "volunteer") return e.status === "published";
       return true;
     });
 
