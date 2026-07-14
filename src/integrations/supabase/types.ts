@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificates: {
+        Row: {
+          certificate_code: string
+          event_id: string
+          id: string
+          issued_at: string
+          organizer_id: string
+          service_hours: number
+          volunteer_id: string
+        }
+        Insert: {
+          certificate_code?: string
+          event_id: string
+          id?: string
+          issued_at?: string
+          organizer_id: string
+          service_hours?: number
+          volunteer_id: string
+        }
+        Update: {
+          certificate_code?: string
+          event_id?: string
+          id?: string
+          issued_at?: string
+          organizer_id?: string
+          service_hours?: number
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_registrations: {
         Row: {
           event_id: string
@@ -103,6 +141,50 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          description: string
+          event_id: string | null
+          event_name: string | null
+          id: string
+          read: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          event_id?: string | null
+          event_name?: string | null
+          id?: string
+          read?: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_id?: string | null
+          event_name?: string | null
+          id?: string
+          read?: boolean
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -180,6 +262,19 @@ export type Database = {
     Enums: {
       app_role: "volunteer" | "organizer"
       event_status: "draft" | "published" | "cancelled" | "archived"
+      notification_type:
+        | "registration_success"
+        | "new_event"
+        | "event_reminder"
+        | "attendance_verified"
+        | "certificate_ready"
+        | "event_updated"
+        | "event_cancelled"
+        | "new_registration"
+        | "registration_cancelled"
+        | "event_full"
+        | "attendance_submitted"
+        | "certificate_generated"
       registration_status: "registered" | "cancelled" | "attended"
     }
     CompositeTypes: {
@@ -310,6 +405,20 @@ export const Constants = {
     Enums: {
       app_role: ["volunteer", "organizer"],
       event_status: ["draft", "published", "cancelled", "archived"],
+      notification_type: [
+        "registration_success",
+        "new_event",
+        "event_reminder",
+        "attendance_verified",
+        "certificate_ready",
+        "event_updated",
+        "event_cancelled",
+        "new_registration",
+        "registration_cancelled",
+        "event_full",
+        "attendance_submitted",
+        "certificate_generated",
+      ],
       registration_status: ["registered", "cancelled", "attended"],
     },
   },
