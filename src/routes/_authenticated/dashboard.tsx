@@ -124,23 +124,38 @@ function VolunteerDashboard() {
 
 function OrganizerDashboard() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["organizer-dash", user!.id],
     queryFn: async () => {
-      const { data: events } = await supabase
-        .from("events")
-        .select("id, title, status, start_at, service_hours, event_registrations(id, status)")
-        .eq("organizer_id", user!.id)
-        .order("start_at", { ascending: false });
+      const [{ data: events }, { count: certCount }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, status, start_at, service_hours, event_registrations(id, status)")
+          .eq("organizer_id", user!.id)
+          .order("start_at", { ascending: false }),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("organizer_id", user!.id),
+      ]);
       const list = events ?? [];
       const published = list.filter((e) => e.status === "published");
       const upcoming = published.filter((e) => new Date(e.start_at) > new Date());
       const registrations = list.flatMap((e) => e.event_registrations ?? []);
       const verified = registrations.filter((r) => r.status === "attended").length;
       const hours = list.reduce((s, e) => s + Number(e.service_hours) * (e.event_registrations?.filter((r) => r.status === "attended").length ?? 0), 0);
-      return { total: list.length, upcoming: upcoming.length, published: published.length, registrations: registrations.length, verified, hours, recent: list.slice(0, 5) };
+      return { total: list.length, upcoming: upcoming.length, published: published.length, registrations: registrations.length, verified, hours, certs: certCount ?? 0, recent: list.slice(0, 5) };
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`org-dash-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `organizer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations" }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates", filter: `organizer_id=eq.${user.id}` }, () => qc.invalidateQueries({ queryKey: ["organizer-dash", user.id] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
