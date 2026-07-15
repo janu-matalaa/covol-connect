@@ -103,17 +103,19 @@ function EventDetail() {
 
   const exportCSV = () => {
     const rows: (string | number | null | undefined)[][] = [
-      ["Volunteer Name", "Student ID", "Email", "Phone", "Department", "Registration Date", "Attendance Status", "Certificate Status", "Service Hours"],
+      ["Full Name", "Student ID", "Department", "Year", "Mobile Number", "Email", "College", "Registration Date", "Attendance Status", "Certificate Status", "Service Hours"],
     ];
     for (const r of roster) {
       const p = event.profilesMap[r.volunteer_id];
       const cert = event.certsMap[r.volunteer_id];
       rows.push([
-        p?.full_name ?? "",
-        p?.student_id ?? "",
-        p?.email ?? "",
-        p?.phone ?? "",
-        p?.department ?? "",
+        r.full_name ?? p?.full_name ?? "",
+        r.student_id ?? p?.student_id ?? "",
+        r.department ?? p?.department ?? "",
+        r.year_of_study ?? "",
+        r.phone ?? p?.phone ?? "",
+        r.email ?? p?.email ?? "",
+        r.college ?? "",
         format(new Date(r.registered_at), "yyyy-MM-dd"),
         r.status,
         cert ? `Issued (${cert.certificate_code})` : "Not issued",
@@ -181,9 +183,14 @@ function EventDetail() {
                 return (
                   <div key={r.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3 flex-wrap gap-2">
                     <div className="min-w-0">
-                      <p className="font-medium text-sm">{p?.full_name ?? "Volunteer"}</p>
+                      <p className="font-medium text-sm">{r.full_name ?? p?.full_name ?? "Volunteer"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {p?.department ?? "—"} · {p?.email ?? "no email"} · registered {format(new Date(r.registered_at), "PP")}
+                        {(r.student_id ?? p?.student_id) ? `${r.student_id ?? p?.student_id} · ` : ""}
+                        {r.department ?? p?.department ?? "—"}
+                        {r.year_of_study ? ` · ${r.year_of_study}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {(r.email ?? p?.email) ?? "no email"}{(r.phone ?? p?.phone) ? ` · ${r.phone ?? p?.phone}` : ""} · registered {format(new Date(r.registered_at), "PP")}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
