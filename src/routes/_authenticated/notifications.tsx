@@ -19,6 +19,12 @@ type NType = Database["public"]["Enums"]["notification_type"];
 
 export const Route = createFileRoute("/_authenticated/notifications")({
   component: NotificationsPage,
+  errorComponent: ({ error }) => (
+    <div className="max-w-3xl mx-auto p-8 text-center">
+      <p className="text-muted-foreground">Failed to load notifications.</p>
+      <p className="mt-2 text-xs text-muted-foreground">{error.message}</p>
+    </div>
+  ),
 });
 
 const iconFor: Record<NType, React.ElementType> = {
