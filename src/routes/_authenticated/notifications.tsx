@@ -34,6 +34,8 @@ const iconFor: Record<NType, React.ElementType> = {
   event_full: Users,
   attendance_submitted: ClipboardCheck,
   certificate_generated: Award,
+  organizer_announcement: Megaphone,
+  new_message: MessageSquare,
 };
 
 function NotificationsPage() {
