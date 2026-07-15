@@ -86,16 +86,22 @@ function VolunteerDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Volunteer Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Track your impact and upcoming events.</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Volunteer Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">Track your impact and upcoming events.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/messages"><Button variant="outline" size="sm" className="gap-1"><MessageSquare className="h-4 w-4" /> Messages</Button></Link>
+          <Link to="/certificates"><Button size="sm" className="gap-1 gradient-primary text-white border-0 hover:opacity-90"><Award className="h-4 w-4" /> My Certificates</Button></Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Clock} label="Service Hours" value={data!.hours.toFixed(1)} delay={0} />
-        <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} />
+        <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} to="/events" />
         <StatCard icon={TrendingUp} label="Completed" value={data!.attended} delay={0.1} />
-        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} to="/certificates" />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
@@ -169,12 +175,15 @@ function OrganizerDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Organizer Dashboard</h1>
           <p className="mt-1 text-muted-foreground">Manage your events and volunteers.</p>
         </div>
-        <Link to="/events/new"><Button className="gradient-primary text-white border-0 hover:opacity-90">Create Event</Button></Link>
+        <div className="flex gap-2">
+          <Link to="/messages"><Button variant="outline" className="gap-1"><MessageSquare className="h-4 w-4" /> Messages</Button></Link>
+          <Link to="/events/new"><Button className="gradient-primary text-white border-0 hover:opacity-90">Create Event</Button></Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} />
-        <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} />
+        <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} to="/events" />
+        <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} to="/events" />
         <StatCard icon={Users} label="Registrations" value={data!.registrations} delay={0.1} />
         <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>
