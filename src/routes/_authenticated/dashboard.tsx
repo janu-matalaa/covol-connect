@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calendar, Users, Award, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { Calendar, Users, Award, Clock, TrendingUp, Loader2, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
@@ -26,24 +26,27 @@ function Dashboard() {
   return role === "organizer" ? <OrganizerDashboard /> : <VolunteerDashboard />;
 }
 
-function StatCard({ icon: Icon, label, value, delay = 0 }: { icon: React.ElementType; label: string; value: string | number; delay?: number }) {
+function StatCard({ icon: Icon, label, value, delay = 0, to }: { icon: React.ElementType; label: string; value: string | number; delay?: number; to?: "/certificates" | "/messages" | "/events" }) {
+  const inner = (
+    <Card className="p-6 shadow-card border-border/60 hover:shadow-glow transition-all cursor-pointer">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
+        </div>
+        <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary shadow-glow">
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+      </div>
+    </Card>
+  );
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
     >
-      <Card className="p-6 shadow-card border-border/60 hover:shadow-glow transition-all">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
-          </div>
-          <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary shadow-glow">
-            <Icon className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </Card>
+      {to ? <Link to={to}>{inner}</Link> : inner}
     </motion.div>
   );
 }
@@ -83,16 +86,22 @@ function VolunteerDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Volunteer Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Track your impact and upcoming events.</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Volunteer Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">Track your impact and upcoming events.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/messages"><Button variant="outline" size="sm" className="gap-1"><MessageSquare className="h-4 w-4" /> Messages</Button></Link>
+          <Link to="/certificates"><Button size="sm" className="gap-1 gradient-primary text-white border-0 hover:opacity-90"><Award className="h-4 w-4" /> My Certificates</Button></Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Clock} label="Service Hours" value={data!.hours.toFixed(1)} delay={0} />
-        <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} />
+        <StatCard icon={Calendar} label="Registered" value={data!.total} delay={0.05} to="/events" />
         <StatCard icon={TrendingUp} label="Completed" value={data!.attended} delay={0.1} />
-        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
+        <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} to="/certificates" />
       </div>
 
       <Card className="p-6 shadow-card border-border/60">
@@ -166,12 +175,15 @@ function OrganizerDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Organizer Dashboard</h1>
           <p className="mt-1 text-muted-foreground">Manage your events and volunteers.</p>
         </div>
-        <Link to="/events/new"><Button className="gradient-primary text-white border-0 hover:opacity-90">Create Event</Button></Link>
+        <div className="flex gap-2">
+          <Link to="/messages"><Button variant="outline" className="gap-1"><MessageSquare className="h-4 w-4" /> Messages</Button></Link>
+          <Link to="/events/new"><Button className="gradient-primary text-white border-0 hover:opacity-90">Create Event</Button></Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} />
-        <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} />
+        <StatCard icon={Calendar} label="Total Events" value={data!.total} delay={0} to="/events" />
+        <StatCard icon={TrendingUp} label="Upcoming" value={data!.upcoming} delay={0.05} to="/events" />
         <StatCard icon={Users} label="Registrations" value={data!.registrations} delay={0.1} />
         <StatCard icon={Award} label="Certificates" value={data!.certs} delay={0.15} />
       </div>

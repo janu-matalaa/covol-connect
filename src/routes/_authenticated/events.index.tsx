@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RegisterDialog } from "@/components/register-dialog";
 
 export const Route = createFileRoute("/_authenticated/events/")({
   component: EventsList,
@@ -24,6 +25,7 @@ function EventsList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("upcoming");
+  const [regTarget, setRegTarget] = useState<{ id: string; title: string } | null>(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
@@ -50,18 +52,7 @@ function EventsList() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  const register = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("event_registrations").insert({ event_id: eventId, volunteer_id: user!.id });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Registered!");
-      qc.invalidateQueries({ queryKey: ["events"] });
-      qc.invalidateQueries({ queryKey: ["volunteer-dash"] });
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  // Registration is handled through the RegisterDialog below.
 
   const cancel = useMutation({
     mutationFn: async (regId: string) => {
@@ -162,7 +153,7 @@ function EventsList() {
                             Cancel
                           </Button>
                         ) : (
-                          <Button size="sm" onClick={() => register.mutate(e.id)} disabled={register.isPending || isFull} className="gradient-primary text-white border-0 hover:opacity-90">
+                          <Button size="sm" onClick={() => setRegTarget({ id: e.id, title: e.title })} disabled={isFull} className="gradient-primary text-white border-0 hover:opacity-90">
                             {isFull ? "Full" : "Register"}
                           </Button>
                         )
@@ -179,6 +170,18 @@ function EventsList() {
             );
           })}
         </div>
+      )}
+      {regTarget && (
+        <RegisterDialog
+          open={!!regTarget}
+          onOpenChange={(v) => !v && setRegTarget(null)}
+          eventId={regTarget.id}
+          eventTitle={regTarget.title}
+          onRegistered={() => {
+            qc.invalidateQueries({ queryKey: ["events"] });
+            qc.invalidateQueries({ queryKey: ["volunteer-dash"] });
+          }}
+        />
       )}
     </div>
   );

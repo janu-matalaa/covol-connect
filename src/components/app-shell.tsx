@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus, Award } from "lucide-react";
+import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus, Award, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "./theme-toggle";
@@ -24,6 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = [
     { to: "/dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
     { to: "/events" as const, label: "Events", icon: Calendar },
+    { to: "/messages" as const, label: "Messages", icon: MessageSquare },
     ...(role === "volunteer" ? [{ to: "/certificates" as const, label: "Certificates", icon: Award }] : []),
   ];
 

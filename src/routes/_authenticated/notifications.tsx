@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   Bell, CheckCircle2, Trash2, Calendar, UserPlus, UserMinus, Users,
-  Award, ClipboardCheck, AlertTriangle, Info,
+  Award, ClipboardCheck, AlertTriangle, Info, Megaphone, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +19,12 @@ type NType = Database["public"]["Enums"]["notification_type"];
 
 export const Route = createFileRoute("/_authenticated/notifications")({
   component: NotificationsPage,
+  errorComponent: ({ error }) => (
+    <div className="max-w-3xl mx-auto p-8 text-center">
+      <p className="text-muted-foreground">Failed to load notifications.</p>
+      <p className="mt-2 text-xs text-muted-foreground">{error.message}</p>
+    </div>
+  ),
 });
 
 const iconFor: Record<NType, React.ElementType> = {
@@ -34,6 +40,8 @@ const iconFor: Record<NType, React.ElementType> = {
   event_full: Users,
   attendance_submitted: ClipboardCheck,
   certificate_generated: Award,
+  organizer_announcement: Megaphone,
+  new_message: MessageSquare,
 };
 
 function NotificationsPage() {
