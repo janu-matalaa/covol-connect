@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RegisterDialog } from "@/components/register-dialog";
 
 export const Route = createFileRoute("/_authenticated/events/")({
   component: EventsList,
@@ -24,6 +25,7 @@ function EventsList() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("upcoming");
+  const [regTarget, setRegTarget] = useState<{ id: string; title: string } | null>(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
