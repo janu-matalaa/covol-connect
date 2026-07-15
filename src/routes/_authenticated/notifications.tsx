@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   Bell, CheckCircle2, Trash2, Calendar, UserPlus, UserMinus, Users,
-  Award, ClipboardCheck, AlertTriangle, Info,
+  Award, ClipboardCheck, AlertTriangle, Info, Megaphone, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
