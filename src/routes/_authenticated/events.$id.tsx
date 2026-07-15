@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { downloadCSV } from "@/lib/csv";
+import { EventChat } from "@/components/event-chat";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   component: EventDetail,
@@ -217,6 +218,10 @@ function EventDetail() {
             )}
           </div>
         </Card>
+      )}
+
+      {(isOrganizer || (role === "volunteer" && roster.some((r) => r.volunteer_id === user?.id))) && (
+        <EventChat eventId={event.id} eventTitle={event.title} isOrganizer={isOrganizer} />
       )}
     </motion.div>
   );
