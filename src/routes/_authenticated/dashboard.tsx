@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calendar, Users, Award, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { Calendar, Users, Award, Clock, TrendingUp, Loader2, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
@@ -26,24 +26,27 @@ function Dashboard() {
   return role === "organizer" ? <OrganizerDashboard /> : <VolunteerDashboard />;
 }
 
-function StatCard({ icon: Icon, label, value, delay = 0 }: { icon: React.ElementType; label: string; value: string | number; delay?: number }) {
+function StatCard({ icon: Icon, label, value, delay = 0, to }: { icon: React.ElementType; label: string; value: string | number; delay?: number; to?: "/certificates" | "/messages" | "/events" }) {
+  const inner = (
+    <Card className="p-6 shadow-card border-border/60 hover:shadow-glow transition-all cursor-pointer">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
+        </div>
+        <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary shadow-glow">
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+      </div>
+    </Card>
+  );
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
     >
-      <Card className="p-6 shadow-card border-border/60 hover:shadow-glow transition-all">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
-          </div>
-          <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary shadow-glow">
-            <Icon className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </Card>
+      {to ? <Link to={to}>{inner}</Link> : inner}
     </motion.div>
   );
 }
