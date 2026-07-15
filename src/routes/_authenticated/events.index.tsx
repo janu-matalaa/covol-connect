@@ -153,7 +153,7 @@ function EventsList() {
                             Cancel
                           </Button>
                         ) : (
-                          <Button size="sm" onClick={() => register.mutate(e.id)} disabled={register.isPending || isFull} className="gradient-primary text-white border-0 hover:opacity-90">
+                          <Button size="sm" onClick={() => setRegTarget({ id: e.id, title: e.title })} disabled={isFull} className="gradient-primary text-white border-0 hover:opacity-90">
                             {isFull ? "Full" : "Register"}
                           </Button>
                         )
@@ -170,6 +170,18 @@ function EventsList() {
             );
           })}
         </div>
+      )}
+      {regTarget && (
+        <RegisterDialog
+          open={!!regTarget}
+          onOpenChange={(v) => !v && setRegTarget(null)}
+          eventId={regTarget.id}
+          eventTitle={regTarget.title}
+          onRegistered={() => {
+            qc.invalidateQueries({ queryKey: ["events"] });
+            qc.invalidateQueries({ queryKey: ["volunteer-dash"] });
+          }}
+        />
       )}
     </div>
   );
