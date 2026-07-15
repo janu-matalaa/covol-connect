@@ -52,18 +52,7 @@ function EventsList() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  const register = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("event_registrations").insert({ event_id: eventId, volunteer_id: user!.id });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Registered!");
-      qc.invalidateQueries({ queryKey: ["events"] });
-      qc.invalidateQueries({ queryKey: ["volunteer-dash"] });
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  // Registration is handled through the RegisterDialog below.
 
   const cancel = useMutation({
     mutationFn: async (regId: string) => {
