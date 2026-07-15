@@ -54,25 +54,46 @@ export type Database = {
       }
       event_registrations: {
         Row: {
+          college: string | null
+          department: string | null
+          email: string | null
           event_id: string
+          full_name: string | null
           id: string
+          phone: string | null
           registered_at: string
           status: Database["public"]["Enums"]["registration_status"]
+          student_id: string | null
           volunteer_id: string
+          year_of_study: string | null
         }
         Insert: {
+          college?: string | null
+          department?: string | null
+          email?: string | null
           event_id: string
+          full_name?: string | null
           id?: string
+          phone?: string | null
           registered_at?: string
           status?: Database["public"]["Enums"]["registration_status"]
+          student_id?: string | null
           volunteer_id: string
+          year_of_study?: string | null
         }
         Update: {
+          college?: string | null
+          department?: string | null
+          email?: string | null
           event_id?: string
+          full_name?: string | null
           id?: string
+          phone?: string | null
           registered_at?: string
           status?: Database["public"]["Enums"]["registration_status"]
+          student_id?: string | null
           volunteer_id?: string
+          year_of_study?: string | null
         }
         Relationships: [
           {
@@ -140,6 +161,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          event_id: string
+          id: string
+          is_announcement: boolean
+          read_by: Json
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          event_id: string
+          id?: string
+          is_announcement?: boolean
+          read_by?: Json
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          is_announcement?: boolean
+          read_by?: Json
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -278,6 +337,8 @@ export type Database = {
         | "event_full"
         | "attendance_submitted"
         | "certificate_generated"
+        | "organizer_announcement"
+        | "new_message"
       registration_status: "registered" | "cancelled" | "attended"
     }
     CompositeTypes: {
@@ -421,6 +482,8 @@ export const Constants = {
         "event_full",
         "attendance_submitted",
         "certificate_generated",
+        "organizer_announcement",
+        "new_message",
       ],
       registration_status: ["registered", "cancelled", "attended"],
     },
