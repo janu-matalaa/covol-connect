@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Bell, CheckCircle2, Trash2, Calendar, UserPlus, UserMinus, Users,
   Award, ClipboardCheck, AlertTriangle, Info, Megaphone, MessageSquare,
+  ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion, UserCog,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +43,15 @@ const iconFor: Record<NType, React.ElementType> = {
   certificate_generated: Award,
   organizer_announcement: Megaphone,
   new_message: MessageSquare,
+  admin_new_organizer: UserCog,
+  admin_new_event: Calendar,
+  admin_new_certificate: Award,
+  admin_chat_message: MessageSquare,
+  organizer_approved: ShieldCheck,
+  organizer_rejected: ShieldX,
+  organizer_more_info: ShieldQuestion,
+  organizer_suspended: ShieldAlert,
+  account_suspended: ShieldAlert,
 };
 
 function NotificationsPage() {
