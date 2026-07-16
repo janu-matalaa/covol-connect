@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_chat_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_url: string | null
+          body: string
+          created_at: string
+          id: string
+          read_by: Json
+          sender_id: string
+          thread_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          read_by?: Json
+          sender_id: string
+          thread_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          read_by?: Json
+          sender_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "admin_chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          organizer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organizer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organizer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           certificate_code: string
@@ -21,6 +83,9 @@ export type Database = {
           id: string
           issued_at: string
           organizer_id: string
+          revoked: boolean
+          revoked_at: string | null
+          revoked_reason: string | null
           service_hours: number
           volunteer_id: string
         }
@@ -30,6 +95,9 @@ export type Database = {
           id?: string
           issued_at?: string
           organizer_id: string
+          revoked?: boolean
+          revoked_at?: string | null
+          revoked_reason?: string | null
           service_hours?: number
           volunteer_id: string
         }
@@ -39,6 +107,9 @@ export type Database = {
           id?: string
           issued_at?: string
           organizer_id?: string
+          revoked?: boolean
+          revoked_at?: string | null
+          revoked_reason?: string | null
           service_hours?: number
           volunteer_id?: string
         }
@@ -251,11 +322,20 @@ export type Database = {
           created_at: string
           department: string | null
           email: string | null
+          faculty_advisor: string | null
           full_name: string | null
           id: string
+          institution: string | null
+          organization_name: string | null
+          organizer_status:
+            | Database["public"]["Enums"]["organizer_status"]
+            | null
           phone: string | null
+          purpose: string | null
           student_id: string | null
+          suspended: boolean
           updated_at: string
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -263,11 +343,20 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string | null
+          faculty_advisor?: string | null
           full_name?: string | null
           id: string
+          institution?: string | null
+          organization_name?: string | null
+          organizer_status?:
+            | Database["public"]["Enums"]["organizer_status"]
+            | null
           phone?: string | null
+          purpose?: string | null
           student_id?: string | null
+          suspended?: boolean
           updated_at?: string
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -275,11 +364,20 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string | null
+          faculty_advisor?: string | null
           full_name?: string | null
           id?: string
+          institution?: string | null
+          organization_name?: string | null
+          organizer_status?:
+            | Database["public"]["Enums"]["organizer_status"]
+            | null
           phone?: string | null
+          purpose?: string | null
           student_id?: string | null
+          suspended?: boolean
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -320,6 +418,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_organizer: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "volunteer" | "organizer" | "admin"
