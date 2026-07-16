@@ -57,7 +57,7 @@ export function EventChat({ eventId, eventTitle, isOrganizer }: { eventId: strin
 
   useEffect(() => {
     const ch = supabase
-      .channel(`event-chat-${eventId}`)
+      .channel(`event-chat-${eventId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `event_id=eq.${eventId}` },
         () => qc.invalidateQueries({ queryKey: ["event-messages", eventId] }))
       .subscribe();
