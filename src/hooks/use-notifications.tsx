@@ -24,8 +24,10 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!user) return;
+    // Unique channel name per hook instance — reusing a channel name after
+    // .subscribe() throws "cannot add postgres_changes callbacks after subscribe()".
     const ch = supabase
-      .channel(`notif-${user.id}`)
+      .channel(`notif-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
