@@ -322,7 +322,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "volunteer" | "organizer"
+      app_role: "volunteer" | "organizer" | "admin"
       event_status: "draft" | "published" | "cancelled" | "archived"
       notification_type:
         | "registration_success"
@@ -339,6 +339,21 @@ export type Database = {
         | "certificate_generated"
         | "organizer_announcement"
         | "new_message"
+        | "admin_new_organizer"
+        | "admin_new_event"
+        | "admin_new_certificate"
+        | "admin_chat_message"
+        | "organizer_approved"
+        | "organizer_rejected"
+        | "organizer_more_info"
+        | "organizer_suspended"
+        | "account_suspended"
+      organizer_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "suspended"
+        | "more_info"
       registration_status: "registered" | "cancelled" | "attended"
     }
     CompositeTypes: {
@@ -467,7 +482,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["volunteer", "organizer"],
+      app_role: ["volunteer", "organizer", "admin"],
       event_status: ["draft", "published", "cancelled", "archived"],
       notification_type: [
         "registration_success",
@@ -484,6 +499,22 @@ export const Constants = {
         "certificate_generated",
         "organizer_announcement",
         "new_message",
+        "admin_new_organizer",
+        "admin_new_event",
+        "admin_new_certificate",
+        "admin_chat_message",
+        "organizer_approved",
+        "organizer_rejected",
+        "organizer_more_info",
+        "organizer_suspended",
+        "account_suspended",
+      ],
+      organizer_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "suspended",
+        "more_info",
       ],
       registration_status: ["registered", "cancelled", "attended"],
     },
