@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const { role, user } = useAuth();
+  const { role, user, isAdmin, organizerStatus, suspended } = useAuth();
   if (!role || !user) {
     return (
       <div className="flex justify-center py-20">
@@ -23,7 +23,29 @@ function Dashboard() {
       </div>
     );
   }
-  return role === "organizer" ? <OrganizerDashboard /> : <VolunteerDashboard />;
+  if (isAdmin) return <Navigate to="/admin" />;
+  const pendingBanner =
+    role === "organizer" && organizerStatus && organizerStatus !== "approved" ? (
+      <Card className="p-4 border-yellow-500/40 bg-yellow-500/10 mb-6">
+        <p className="text-sm">
+          Your organizer account is <span className="font-semibold capitalize">{organizerStatus}</span>.{" "}
+          <Link to="/verification" className="text-primary hover:underline font-medium">
+            Complete verification
+          </Link>{" "}
+          to unlock event creation.
+        </p>
+      </Card>
+    ) : suspended ? (
+      <Card className="p-4 border-destructive/40 bg-destructive/10 mb-6">
+        <p className="text-sm">Your account is suspended. Contact an admin for assistance.</p>
+      </Card>
+    ) : null;
+  return (
+    <div>
+      {pendingBanner}
+      {role === "organizer" ? <OrganizerDashboard /> : <VolunteerDashboard />}
+    </div>
+  );
 }
 
 function StatCard({ icon: Icon, label, value, delay = 0, to }: { icon: React.ElementType; label: string; value: string | number; delay?: number; to?: "/certificates" | "/messages" | "/events" }) {
