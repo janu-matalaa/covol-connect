@@ -17,8 +17,10 @@ export const Route = createFileRoute("/_authenticated/events/new")({
 });
 
 function NewEvent() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, isApprovedOrganizer } = useAuth();
   const navigate = useNavigate();
+  if (!loading && role === "organizer" && !isApprovedOrganizer) return <Navigate to="/verification" />;
+  if (!loading && role !== "organizer") return <Navigate to="/dashboard" />;
   const [form, setForm] = useState({
     title: "",
     description: "",
