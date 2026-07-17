@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus, Award, MessageSquare, Shield, ShieldCheck } from "lucide-react";
+import { Sparkles, LayoutDashboard, Calendar, User as UserIcon, LogOut, Plus, Award, MessageSquare, Shield, ShieldCheck, Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "./theme-toggle";
@@ -25,9 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navItems = isAdmin
     ? [
-        { to: "/admin" as const, label: "Admin", icon: Shield },
+        { to: "/admin" as const, label: "Dashboard", icon: Shield },
         { to: "/events" as const, label: "Events", icon: Calendar },
         { to: "/messages" as const, label: "Messages", icon: MessageSquare },
+        { to: "/notifications" as const, label: "Alerts", icon: Bell },
       ]
     : [
         { to: "/dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
