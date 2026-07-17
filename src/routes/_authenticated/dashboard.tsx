@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Calendar, Users, Award, Clock, TrendingUp, Loader2, MessageSquare,
-  Bell, User as UserIcon, Plus, ListChecks, BarChart3, Shield, CheckCircle2, FileText,
+  Bell, User as UserIcon, Plus, ListChecks, BarChart3, Shield, CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -301,9 +301,6 @@ function OrganizerDashboard() {
           )}
         </div>
       </Card>
-
-      {/* unused import guard */}
-      <span className="hidden"><FileText /></span>
     </div>
   );
 }
