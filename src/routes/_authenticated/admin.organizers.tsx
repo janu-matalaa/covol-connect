@@ -113,6 +113,34 @@ function AdminOrganizers() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const issueOrgCert = useMutation({
+    mutationFn: async (o: { id: string; hours: number; volunteers: number; firstEventId?: string }) => {
+      // Pick any of the organizer's completed events for FK; fall back to any event of theirs.
+      let eventId = o.firstEventId;
+      if (!eventId) {
+        const { data: ev } = await supabase.from("events").select("id").eq("organizer_id", o.id).limit(1).maybeSingle();
+        eventId = ev?.id;
+      }
+      if (!eventId) throw new Error("Organizer has no events yet.");
+      const code = `ORG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const { error } = await supabase.from("certificates").insert({
+        certificate_code: code,
+        event_id: eventId,
+        organizer_id: o.id,
+        volunteer_id: o.id,
+        service_hours: o.hours,
+        certificate_type: "organizer",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-organizers"] });
+      toast.success("Organizer certificate issued");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+
   const filtered = data.filter((o) => {
     const q = search.toLowerCase();
     return !q || o.full_name?.toLowerCase().includes(q) || o.email?.toLowerCase().includes(q) || o.organization_name?.toLowerCase().includes(q);
