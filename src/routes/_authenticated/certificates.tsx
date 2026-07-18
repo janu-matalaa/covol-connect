@@ -134,12 +134,20 @@ function CertificatesPage() {
               <Card className="p-6 border-border/60 shadow-card hover:shadow-glow transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{c.event_title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">by {c.organizer_name}</p>
+                    <p className="font-semibold truncate">
+                      {c.certificate_type === "organizer" ? "Organizer Certificate" : c.event_title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {c.certificate_type === "organizer" ? "Issued by CoVol Admin" : `by ${c.organizer_name}`}
+                    </p>
                     <p className="mt-2 font-mono text-xs text-muted-foreground">{c.certificate_code}</p>
                   </div>
-                  <Badge className="gradient-primary text-white border-0">{c.service_hours}h</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    {c.certificate_type === "organizer" && <Badge variant="outline" className="text-xs">Organizer</Badge>}
+                    <Badge className="gradient-primary text-white border-0">{c.service_hours}h</Badge>
+                  </div>
                 </div>
+
                 <p className="mt-3 text-xs text-muted-foreground">Issued {format(new Date(c.issued_at), "PPP")}</p>
                 <div className="mt-4 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setOpen(c)}><Eye className="h-3.5 w-3.5 mr-1" /> View</Button>
