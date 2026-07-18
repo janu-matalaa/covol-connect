@@ -36,20 +36,44 @@ function AdminOrganizers() {
       if (error) throw error;
       const ids = (roles ?? []).map((r) => r.user_id);
       if (!ids.length) return [];
-      const [{ data: profs }, { data: events }, { data: certs }] = await Promise.all([
+      const [{ data: profs }, { data: events }, { data: certs }, { data: regs }] = await Promise.all([
         supabase.from("profiles").select("id, full_name, email, organization_name, organizer_status, suspended, created_at").in("id", ids),
-        supabase.from("events").select("id, organizer_id"),
-        supabase.from("certificates").select("id, organizer_id"),
+        supabase.from("events").select("id, organizer_id, service_hours, end_at, status"),
+        supabase.from("certificates").select("id, organizer_id, certificate_type"),
+        supabase.from("event_registrations").select("id, event_id, status"),
       ]);
+      const eventsByOrg = new Map<string, { id: string; hours: number; completed: boolean }[]>();
+      (events ?? []).forEach((e) => {
+        const arr = eventsByOrg.get(e.organizer_id) ?? [];
+        arr.push({ id: e.id, hours: Number(e.service_hours ?? 0), completed: e.status === "published" && new Date(e.end_at).getTime() < Date.now() });
+        eventsByOrg.set(e.organizer_id, arr);
+      });
+      const attendedByEvent = new Map<string, number>();
+      (regs ?? []).forEach((r) => { if (r.status === "attended") attendedByEvent.set(r.event_id, (attendedByEvent.get(r.event_id) ?? 0) + 1); });
       const eventCount = new Map<string, number>();
       (events ?? []).forEach((e) => eventCount.set(e.organizer_id, (eventCount.get(e.organizer_id) ?? 0) + 1));
       const certCount = new Map<string, number>();
-      (certs ?? []).forEach((c) => certCount.set(c.organizer_id, (certCount.get(c.organizer_id) ?? 0) + 1));
-      return (profs ?? []).map((p) => ({
-        ...p,
-        events: eventCount.get(p.id) ?? 0,
-        certs: certCount.get(p.id) ?? 0,
-      }));
+      const hasOrgCert = new Map<string, boolean>();
+      (certs ?? []).forEach((c) => {
+        certCount.set(c.organizer_id, (certCount.get(c.organizer_id) ?? 0) + 1);
+        if (c.certificate_type === "organizer") hasOrgCert.set(c.organizer_id, true);
+      });
+      return (profs ?? []).map((p) => {
+        const evs = eventsByOrg.get(p.id) ?? [];
+        const completedEvents = evs.filter((e) => e.completed);
+        const managedVolunteers = completedEvents.reduce((s, e) => s + (attendedByEvent.get(e.id) ?? 0), 0);
+        const totalHours = completedEvents.reduce((s, e) => s + e.hours * (attendedByEvent.get(e.id) ?? 0), 0);
+        return {
+          ...p,
+          events: eventCount.get(p.id) ?? 0,
+          certs: certCount.get(p.id) ?? 0,
+          eligibleForCert: completedEvents.length > 0 && managedVolunteers > 0,
+          hasOrgCert: !!hasOrgCert.get(p.id),
+          managedVolunteers,
+          totalHours,
+        };
+      });
+
     },
   });
 
