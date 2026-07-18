@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { Sparkles, QrCode } from "lucide-react";
+import { Sparkles, QrCode, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 
 export type CertificateData = {
@@ -9,9 +9,13 @@ export type CertificateData = {
   organizerName: string;
   serviceHours: number;
   issuedAt: string;
+  type?: "volunteer" | "organizer";
+  organizationName?: string | null;
+  volunteersManaged?: number;
 };
 
 export const CertificateView = forwardRef<HTMLDivElement, { data: CertificateData }>(({ data }, ref) => {
+  const isOrganizer = data.type === "organizer";
   return (
     <div
       ref={ref}
@@ -32,21 +36,38 @@ export const CertificateView = forwardRef<HTMLDivElement, { data: CertificateDat
       </div>
 
       <div className="mt-8 text-center">
-        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Certificate of Appreciation</p>
-        <p className="mt-6 text-sm text-slate-500">This certificate is proudly presented to</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-primary">{data.volunteerName}</h1>
-        <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
-          in recognition of dedicated volunteer service for{" "}
-          <span className="font-semibold text-slate-900">{data.eventName}</span>, contributing{" "}
-          <span className="font-semibold text-slate-900">{data.serviceHours} service hour{data.serviceHours === 1 ? "" : "s"}</span> toward the community.
+        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">
+          {isOrganizer ? "Certificate of Recognition" : "Certificate of Appreciation"}
         </p>
+        <p className="mt-6 text-sm text-slate-500">This certificate is proudly presented to</p>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-primary">
+          {isOrganizer ? data.organizerName : data.volunteerName}
+        </h1>
+        {isOrganizer ? (
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
+            for outstanding leadership of{" "}
+            <span className="font-semibold text-slate-900">{data.organizationName || data.eventName}</span>
+            {typeof data.volunteersManaged === "number" && (
+              <> in organizing <span className="font-semibold text-slate-900">{data.volunteersManaged}</span> volunteer{data.volunteersManaged === 1 ? "" : "s"}</>
+            )}
+            {" "}across <span className="font-semibold text-slate-900">{data.serviceHours} service hour{data.serviceHours === 1 ? "" : "s"}</span> of community impact.
+          </p>
+        ) : (
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
+            in recognition of dedicated volunteer service for{" "}
+            <span className="font-semibold text-slate-900">{data.eventName}</span>, contributing{" "}
+            <span className="font-semibold text-slate-900">{data.serviceHours} service hour{data.serviceHours === 1 ? "" : "s"}</span> toward the community.
+          </p>
+        )}
       </div>
 
       <div className="mt-10 flex items-end justify-between">
         <div className="text-xs">
           <div className="h-px w-40 bg-slate-400" />
-          <p className="mt-1 font-medium">{data.organizerName}</p>
-          <p className="text-slate-500">Organizer signature</p>
+          <p className="mt-1 font-medium flex items-center gap-1">
+            {isOrganizer ? (<><ShieldCheck className="h-3 w-3" /> CoVol Administrator</>) : data.organizerName}
+          </p>
+          <p className="text-slate-500">{isOrganizer ? "Digital signature" : "Organizer signature"}</p>
         </div>
         <div className="grid h-20 w-20 place-items-center rounded-lg border border-slate-300 bg-slate-50 text-slate-400">
           <QrCode className="h-10 w-10" />
