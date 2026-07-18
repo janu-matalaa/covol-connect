@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Calendar, Users, Award, Clock, TrendingUp, Loader2, MessageSquare,
-  Bell, User as UserIcon, Plus, ListChecks, BarChart3, Shield, CheckCircle2,
+  Bell, User as UserIcon, Plus, ListChecks, Shield, ShieldCheck, CheckCircle2,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
