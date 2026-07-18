@@ -27,6 +27,8 @@ type Cert = {
   event_title: string;
   volunteer_name: string;
   organizer_name: string;
+  certificate_type: "volunteer" | "organizer";
+  organization_name: string | null;
 };
 
 function CertificatesPage() {
@@ -41,7 +43,7 @@ function CertificatesPage() {
     queryFn: async () => {
       const { data: certs, error } = await supabase
         .from("certificates")
-        .select("id, certificate_code, service_hours, issued_at, event_id, organizer_id, volunteer_id")
+        .select("id, certificate_code, service_hours, issued_at, event_id, organizer_id, volunteer_id, certificate_type")
         .eq("volunteer_id", user!.id)
         .order("issued_at", { ascending: false });
       if (error) throw error;
@@ -51,10 +53,10 @@ function CertificatesPage() {
       const profIds = [...new Set([...list.map((c) => c.organizer_id), user!.id])];
       const [{ data: events }, { data: profs }] = await Promise.all([
         supabase.from("events").select("id, title").in("id", eventIds),
-        supabase.from("profiles").select("id, full_name").in("id", profIds),
+        supabase.from("profiles").select("id, full_name, organization_name").in("id", profIds),
       ]);
       const eMap = new Map((events ?? []).map((e) => [e.id, e.title]));
-      const pMap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+      const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
       return list.map<Cert>((c) => ({
         id: c.id,
         certificate_code: c.certificate_code,
@@ -63,8 +65,10 @@ function CertificatesPage() {
         event_id: c.event_id,
         organizer_id: c.organizer_id,
         event_title: eMap.get(c.event_id) ?? "Event",
-        volunteer_name: pMap.get(user!.id) ?? "Volunteer",
-        organizer_name: pMap.get(c.organizer_id) ?? "Organizer",
+        volunteer_name: pMap.get(user!.id)?.full_name ?? "Volunteer",
+        organizer_name: pMap.get(c.organizer_id)?.full_name ?? "Organizer",
+        certificate_type: (c.certificate_type as "volunteer" | "organizer") ?? "volunteer",
+        organization_name: pMap.get(user!.id)?.organization_name ?? null,
       }));
     },
   });
@@ -84,10 +88,13 @@ function CertificatesPage() {
     code: c.certificate_code,
     volunteerName: c.volunteer_name,
     eventName: c.event_title,
-    organizerName: c.organizer_name,
+    organizerName: c.volunteer_name,
     serviceHours: c.service_hours,
     issuedAt: c.issued_at,
+    type: c.certificate_type,
+    organizationName: c.organization_name,
   });
+
 
   const downloadPNG = async (c: Cert) => {
     if (!ref.current) return;
