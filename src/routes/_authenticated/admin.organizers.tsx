@@ -208,6 +208,22 @@ function AdminOrganizers() {
                       <Ban className="h-3.5 w-3.5 mr-1" /> Suspend
                     </Button>
                   )}
+                  {o.organizer_status === "approved" && o.eligibleForCert && !o.hasOrgCert && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary/40 text-primary"
+                      onClick={() => issueOrgCert.mutate({ id: o.id, hours: o.totalHours, volunteers: o.managedVolunteers })}
+                    >
+                      <Award className="h-3.5 w-3.5 mr-1" /> Generate certificate
+                    </Button>
+                  )}
+                  {o.hasOrgCert && (
+                    <Badge variant="outline" className="self-center bg-primary/10 text-primary border-primary/30">
+                      <Award className="h-3 w-3 mr-1" /> Certified
+                    </Badge>
+                  )}
+
                   <Button size="sm" variant="outline" className="text-destructive" onClick={() => {
                     if (confirm(`Delete organizer ${o.full_name ?? o.email}? This removes their role and profile.`)) del.mutate(o.id);
                   }}>
