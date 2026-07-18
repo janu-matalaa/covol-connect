@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         { to: "/dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
         { to: "/events" as const, label: "Events", icon: Calendar },
         { to: "/messages" as const, label: "Messages", icon: MessageSquare },
-        ...(role === "volunteer" ? [{ to: "/certificates" as const, label: "Certificates", icon: Award }] : []),
+        ...(role === "volunteer" || role === "organizer" ? [{ to: "/certificates" as const, label: "Certificates", icon: Award }] : []),
         ...(isPendingOrganizer ? [{ to: "/verification" as const, label: "Verification", icon: ShieldCheck }] : []),
       ];
 

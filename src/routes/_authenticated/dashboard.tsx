@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Calendar, Users, Award, Clock, TrendingUp, Loader2, MessageSquare,
-  Bell, User as UserIcon, Plus, ListChecks, BarChart3, Shield, CheckCircle2,
+  Bell, User as UserIcon, Plus, ListChecks, Shield, ShieldCheck, CheckCircle2,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
@@ -256,7 +257,7 @@ function OrganizerDashboard() {
         <StatCard icon={TrendingUp} label="Upcoming" value={data.upcoming} delay={0.05} to="/events" />
         <StatCard icon={Users} label="Registrations" value={data.registrations} delay={0.1} />
         <StatCard icon={CheckCircle2} label="Attendance Verified" value={data.verified} delay={0.15} />
-        <StatCard icon={Award} label="Certificates" value={data.certs} delay={0.2} />
+        <StatCard icon={Award} label="Certificates" value={data.certs} delay={0.2} to="/certificates" />
         <StatCard icon={ListChecks} label="Active Events" value={data.active} delay={0.25} to="/events" />
         <StatCard icon={MessageSquare} label="Messages" value="Open" delay={0.3} to="/messages" />
         <StatCard icon={Bell} label="Notifications" value="View" delay={0.35} to="/notifications" />
@@ -265,18 +266,19 @@ function OrganizerDashboard() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Quick actions</h2>
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-          {isApprovedOrganizer && (
+          {isApprovedOrganizer ? (
             <ActionCard icon={Plus} label="Create Event" description="Publish a new volunteering event" to="/events/new" delay={0} />
+          ) : (
+            <ActionCard icon={ShieldCheck} label="Verify Organization" description="Verify your organization with the administrator to unlock organizer features." to="/verification" delay={0} />
           )}
-          <ActionCard icon={Calendar} label="Manage Events" description="Edit, publish, or review your events" to="/events" delay={0.05} />
-          <ActionCard icon={Users} label="Participants" description="View registered volunteers per event" to="/events" delay={0.1} />
-          <ActionCard icon={CheckCircle2} label="Attendance" description="Verify volunteer attendance" to="/events" delay={0.15} />
-          <ActionCard icon={Award} label="Certificates" description="Generate and manage certificates" to="/events" delay={0.2} />
-          <ActionCard icon={MessageSquare} label="Messages" description="Chat with your volunteers" to="/messages" delay={0.25} />
+          <ActionCard icon={Users} label="Participants" description="View registered volunteers per event" to="/events" delay={0.05} />
+          <ActionCard icon={CheckCircle2} label="Attendance" description="Verify volunteer attendance" to="/events" delay={0.1} />
+          <ActionCard icon={Award} label="Certificates" description="Generate and manage certificates" to="/certificates" delay={0.15} />
+          <ActionCard icon={MessageSquare} label="Messages" description="Chat with your volunteers" to="/messages" delay={0.2} />
+          <ActionCard icon={ShieldCheck} label="Chat with Admin" description="Private verification chat with the administrator" to="/verification" delay={0.25} />
           <ActionCard icon={Bell} label="Notifications" description="See recent alerts and updates" to="/notifications" delay={0.3} />
-          <ActionCard icon={BarChart3} label="Analytics" description="Track engagement and impact" to="/events" delay={0.35} />
-          <ActionCard icon={UserIcon} label="Profile & Settings" description="Update your organizer profile" to="/profile" delay={0.4} />
-          <ActionCard icon={Shield} label="Admin Login" description="Shortcut to admin sign-in (auth required)" to="/admin-login" delay={0.45} />
+          <ActionCard icon={UserIcon} label="Profile & Settings" description="Update your organizer profile" to="/profile" delay={0.35} />
+          <ActionCard icon={Shield} label="Admin Login" description="Shortcut to admin sign-in (auth required)" to="/admin-login" delay={0.4} />
         </div>
       </div>
 
@@ -284,7 +286,13 @@ function OrganizerDashboard() {
         <h2 className="text-lg font-semibold">Recent Events</h2>
         <div className="mt-4 space-y-3">
           {data.recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No events yet. <Link to="/events/new" className="text-primary hover:underline">Create your first event</Link>.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              {isApprovedOrganizer ? (
+                <>No events yet. <Link to="/events/new" className="text-primary hover:underline">Create your first event</Link>.</>
+              ) : (
+                <>Verify your organization to start creating events.</>
+              )}
+            </p>
           ) : (
             data.recent.map((e) => (
               <Link key={e.id} to="/events/$id" params={{ id: e.id }} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-4 hover:border-primary/50 transition-colors">
@@ -304,3 +312,4 @@ function OrganizerDashboard() {
     </div>
   );
 }
+

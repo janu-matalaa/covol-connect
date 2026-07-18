@@ -79,6 +79,7 @@ export type Database = {
       certificates: {
         Row: {
           certificate_code: string
+          certificate_type: Database["public"]["Enums"]["certificate_type"]
           event_id: string
           id: string
           issued_at: string
@@ -91,6 +92,7 @@ export type Database = {
         }
         Insert: {
           certificate_code?: string
+          certificate_type?: Database["public"]["Enums"]["certificate_type"]
           event_id: string
           id?: string
           issued_at?: string
@@ -103,6 +105,7 @@ export type Database = {
         }
         Update: {
           certificate_code?: string
+          certificate_type?: Database["public"]["Enums"]["certificate_type"]
           event_id?: string
           id?: string
           issued_at?: string
@@ -422,6 +425,7 @@ export type Database = {
     }
     Enums: {
       app_role: "volunteer" | "organizer" | "admin"
+      certificate_type: "volunteer" | "organizer"
       event_status: "draft" | "published" | "cancelled" | "archived"
       notification_type:
         | "registration_success"
@@ -582,6 +586,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["volunteer", "organizer", "admin"],
+      certificate_type: ["volunteer", "organizer"],
       event_status: ["draft", "published", "cancelled", "archived"],
       notification_type: [
         "registration_success",

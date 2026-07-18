@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, X, Ban, Trash2, MessageSquare, ShieldQuestion, ShieldCheck, ShieldAlert, ShieldX, Search } from "lucide-react";
+import { Loader2, Check, X, Ban, Trash2, MessageSquare, ShieldQuestion, ShieldCheck, ShieldAlert, ShieldX, Search, Award } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -36,20 +36,44 @@ function AdminOrganizers() {
       if (error) throw error;
       const ids = (roles ?? []).map((r) => r.user_id);
       if (!ids.length) return [];
-      const [{ data: profs }, { data: events }, { data: certs }] = await Promise.all([
+      const [{ data: profs }, { data: events }, { data: certs }, { data: regs }] = await Promise.all([
         supabase.from("profiles").select("id, full_name, email, organization_name, organizer_status, suspended, created_at").in("id", ids),
-        supabase.from("events").select("id, organizer_id"),
-        supabase.from("certificates").select("id, organizer_id"),
+        supabase.from("events").select("id, organizer_id, service_hours, end_at, status"),
+        supabase.from("certificates").select("id, organizer_id, certificate_type"),
+        supabase.from("event_registrations").select("id, event_id, status"),
       ]);
+      const eventsByOrg = new Map<string, { id: string; hours: number; completed: boolean }[]>();
+      (events ?? []).forEach((e) => {
+        const arr = eventsByOrg.get(e.organizer_id) ?? [];
+        arr.push({ id: e.id, hours: Number(e.service_hours ?? 0), completed: e.status === "published" && new Date(e.end_at).getTime() < Date.now() });
+        eventsByOrg.set(e.organizer_id, arr);
+      });
+      const attendedByEvent = new Map<string, number>();
+      (regs ?? []).forEach((r) => { if (r.status === "attended") attendedByEvent.set(r.event_id, (attendedByEvent.get(r.event_id) ?? 0) + 1); });
       const eventCount = new Map<string, number>();
       (events ?? []).forEach((e) => eventCount.set(e.organizer_id, (eventCount.get(e.organizer_id) ?? 0) + 1));
       const certCount = new Map<string, number>();
-      (certs ?? []).forEach((c) => certCount.set(c.organizer_id, (certCount.get(c.organizer_id) ?? 0) + 1));
-      return (profs ?? []).map((p) => ({
-        ...p,
-        events: eventCount.get(p.id) ?? 0,
-        certs: certCount.get(p.id) ?? 0,
-      }));
+      const hasOrgCert = new Map<string, boolean>();
+      (certs ?? []).forEach((c) => {
+        certCount.set(c.organizer_id, (certCount.get(c.organizer_id) ?? 0) + 1);
+        if (c.certificate_type === "organizer") hasOrgCert.set(c.organizer_id, true);
+      });
+      return (profs ?? []).map((p) => {
+        const evs = eventsByOrg.get(p.id) ?? [];
+        const completedEvents = evs.filter((e) => e.completed);
+        const managedVolunteers = completedEvents.reduce((s, e) => s + (attendedByEvent.get(e.id) ?? 0), 0);
+        const totalHours = completedEvents.reduce((s, e) => s + e.hours * (attendedByEvent.get(e.id) ?? 0), 0);
+        return {
+          ...p,
+          events: eventCount.get(p.id) ?? 0,
+          certs: certCount.get(p.id) ?? 0,
+          eligibleForCert: completedEvents.length > 0 && managedVolunteers > 0,
+          hasOrgCert: !!hasOrgCert.get(p.id),
+          managedVolunteers,
+          totalHours,
+        };
+      });
+
     },
   });
 
@@ -88,6 +112,34 @@ function AdminOrganizers() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const issueOrgCert = useMutation({
+    mutationFn: async (o: { id: string; hours: number; volunteers: number; firstEventId?: string }) => {
+      // Pick any of the organizer's completed events for FK; fall back to any event of theirs.
+      let eventId = o.firstEventId;
+      if (!eventId) {
+        const { data: ev } = await supabase.from("events").select("id").eq("organizer_id", o.id).limit(1).maybeSingle();
+        eventId = ev?.id;
+      }
+      if (!eventId) throw new Error("Organizer has no events yet.");
+      const code = `ORG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const { error } = await supabase.from("certificates").insert({
+        certificate_code: code,
+        event_id: eventId,
+        organizer_id: o.id,
+        volunteer_id: o.id,
+        service_hours: o.hours,
+        certificate_type: "organizer",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-organizers"] });
+      toast.success("Organizer certificate issued");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
 
   const filtered = data.filter((o) => {
     const q = search.toLowerCase();
@@ -156,6 +208,22 @@ function AdminOrganizers() {
                       <Ban className="h-3.5 w-3.5 mr-1" /> Suspend
                     </Button>
                   )}
+                  {o.organizer_status === "approved" && o.eligibleForCert && !o.hasOrgCert && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary/40 text-primary"
+                      onClick={() => issueOrgCert.mutate({ id: o.id, hours: o.totalHours, volunteers: o.managedVolunteers })}
+                    >
+                      <Award className="h-3.5 w-3.5 mr-1" /> Generate certificate
+                    </Button>
+                  )}
+                  {o.hasOrgCert && (
+                    <Badge variant="outline" className="self-center bg-primary/10 text-primary border-primary/30">
+                      <Award className="h-3 w-3 mr-1" /> Certified
+                    </Badge>
+                  )}
+
                   <Button size="sm" variant="outline" className="text-destructive" onClick={() => {
                     if (confirm(`Delete organizer ${o.full_name ?? o.email}? This removes their role and profile.`)) del.mutate(o.id);
                   }}>
