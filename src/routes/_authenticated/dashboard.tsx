@@ -112,7 +112,7 @@ function WelcomeHeader({ name, subtitle }: { name: string; subtitle: string }) {
 function VolunteerDashboard() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["volunteer-dash", user!.id],
     queryFn: async () => {
       const [{ data: regs }, { count: certCount }, { data: profile }] = await Promise.all([
@@ -141,7 +141,17 @@ function VolunteerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [user, qc]);
 
-  if (isLoading || !data) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (isError || !data) {
+    return (
+      <Card className="p-8 text-center border-border/60 shadow-card space-y-3">
+        <p className="text-sm text-muted-foreground">
+          We couldn&apos;t load your dashboard data{error instanceof Error ? `: ${error.message}` : "."}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -196,7 +206,7 @@ function VolunteerDashboard() {
 function OrganizerDashboard() {
   const { user, isApprovedOrganizer } = useAuth();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["organizer-dash", user!.id],
     queryFn: async () => {
       const [{ data: events }, { count: certCount }, { data: profile }] = await Promise.all([
@@ -239,7 +249,17 @@ function OrganizerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [user, qc]);
 
-  if (isLoading || !data) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (isError || !data) {
+    return (
+      <Card className="p-8 text-center border-border/60 shadow-card space-y-3">
+        <p className="text-sm text-muted-foreground">
+          We couldn&apos;t load your dashboard data{error instanceof Error ? `: ${error.message}` : "."}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-8">
