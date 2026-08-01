@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Archive, Trash2, Search, ExternalLink } from "lucide-react";
+import { Loader2, Archive, Trash2, Search, ExternalLink, Award } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,17 +23,29 @@ function AdminEvents() {
     queryFn: async () => {
       const { data: events, error } = await supabase
         .from("events")
-        .select("id, title, status, start_at, end_at, organizer_id, capacity, event_registrations(id)")
+        .select("id, title, status, start_at, end_at, organizer_id, capacity, service_hours, event_registrations(id, status)")
         .order("start_at", { ascending: false });
       if (error) throw error;
       const orgIds = [...new Set((events ?? []).map((e) => e.organizer_id))];
       const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", orgIds);
       const nameMap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
-      return (events ?? []).map((e) => ({
-        ...e,
-        organizer_name: nameMap.get(e.organizer_id) ?? "Unknown",
-        registrations: e.event_registrations?.length ?? 0,
-      }));
+      const { data: certs } = await supabase
+        .from("certificates")
+        .select("event_id, organizer_id, certificate_type")
+        .eq("certificate_type", "organizer");
+      const certSet = new Set((certs ?? []).map((c) => `${c.event_id}:${c.organizer_id}`));
+      const now = Date.now();
+      return (events ?? []).map((e) => {
+        const attended = (e.event_registrations ?? []).filter((r) => r.status === "attended").length;
+        return {
+          ...e,
+          organizer_name: nameMap.get(e.organizer_id) ?? "Unknown",
+          registrations: e.event_registrations?.length ?? 0,
+          attended,
+          completed: e.status === "published" && new Date(e.end_at).getTime() < now,
+          hasOrgCert: certSet.has(`${e.id}:${e.organizer_id}`),
+        };
+      });
     },
   });
 
@@ -42,6 +54,7 @@ function AdminEvents() {
       .channel(`admin-ev-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => qc.invalidateQueries({ queryKey: ["admin-events"] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations" }, () => qc.invalidateQueries({ queryKey: ["admin-events"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "certificates" }, () => qc.invalidateQueries({ queryKey: ["admin-events"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
@@ -52,6 +65,23 @@ function AdminEvents() {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-events"] }); toast.success("Event archived"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const issueOrgCert = useMutation({
+    mutationFn: async (e: { id: string; organizer_id: string; hours: number }) => {
+      const code = `ORG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const { error } = await supabase.from("certificates").insert({
+        certificate_code: code,
+        event_id: e.id,
+        organizer_id: e.organizer_id,
+        volunteer_id: e.organizer_id,
+        service_hours: e.hours,
+        certificate_type: "organizer",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-events"] }); toast.success("Organizer certificate generated"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -97,12 +127,24 @@ function AdminEvents() {
                   <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
                     <span>{format(new Date(e.start_at), "PPP p")}</span>
                     <span>· {e.registrations} / {e.capacity || "∞"} registered</span>
+                    <span>· {e.attended} attendance verified</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Link to="/events/$id" params={{ id: e.id }}>
                     <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
                   </Link>
+                  {e.completed && e.attended > 0 && !e.hasOrgCert && (
+                    <Button size="sm" variant="outline" className="border-primary/40 text-primary"
+                      onClick={() => issueOrgCert.mutate({ id: e.id, organizer_id: e.organizer_id, hours: Number(e.service_hours ?? 0) * e.attended })}>
+                      <Award className="h-3.5 w-3.5 mr-1" /> Generate Organizer Certificate
+                    </Button>
+                  )}
+                  {e.hasOrgCert && (
+                    <Badge variant="outline" className="self-center bg-primary/10 text-primary border-primary/30">
+                      <Award className="h-3 w-3 mr-1" /> Certified
+                    </Badge>
+                  )}
                   {e.status !== "archived" && (
                     <Button size="sm" variant="outline" onClick={() => archive.mutate(e.id)}>
                       <Archive className="h-3.5 w-3.5 mr-1" /> Archive
