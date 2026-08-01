@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Check, X, Ban, ShieldQuestion } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Loader2, Check, X, Ban, ShieldQuestion, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { analyzeOrganizer } from "@/lib/verification-ai.functions";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminChat } from "@/components/admin-chat";
@@ -79,7 +82,85 @@ function AdminChatPage() {
         </div>
       </Card>
 
+      <AiAnalysis organizerId={organizerId} />
+
       <AdminChat organizerId={organizerId} organizerName={profile.full_name ?? undefined} />
     </div>
+  );
+}
+
+const riskColors: Record<string, string> = {
+  low: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  medium: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
+  high: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+function AiAnalysis({ organizerId }: { organizerId: string }) {
+  const qc = useQueryClient();
+  const analyze = useServerFn(analyzeOrganizer);
+
+  const { data: reports = [], isLoading } = useQuery({
+    queryKey: ["verification-reports", organizerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("verification_reports")
+        .select("id, trust_score, risk_level, recommendation, reason, created_at")
+        .eq("organizer_id", organizerId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const run = useMutation({
+    mutationFn: async () => analyze({ data: { organizerId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["verification-reports", organizerId] });
+      toast.success("Analysis complete");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Analysis failed"),
+  });
+
+  const latest = reports[0];
+
+  return (
+    <Card className="p-5 border-border/60 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> AI Verification Analysis</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Advisory only — the final decision is always yours.</p>
+        </div>
+        <Button size="sm" onClick={() => run.mutate()} disabled={run.isPending} className="gradient-primary text-white border-0 hover:opacity-90">
+          {run.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />} Analyze
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+      ) : !latest ? (
+        <p className="mt-4 text-sm text-muted-foreground">No analysis yet. Run one to get a trust score and recommendation.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Trust score: {latest.trust_score}/100</Badge>
+            <Badge variant="outline" className={riskColors[latest.risk_level] ?? ""}>Risk: {latest.risk_level}</Badge>
+            <Badge variant="outline" className="capitalize">Recommends: {latest.recommendation}</Badge>
+            <span className="text-xs text-muted-foreground">{format(new Date(latest.created_at), "PPp")}</span>
+          </div>
+          <p className="text-sm">{latest.reason}</p>
+          {reports.length > 1 && (
+            <div className="pt-2 border-t border-border/60 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Previous analyses</p>
+              {reports.slice(1).map((r) => (
+                <p key={r.id} className="text-xs text-muted-foreground">
+                  {format(new Date(r.created_at), "PP")} · {r.trust_score}/100 · {r.risk_level} risk · {r.recommendation}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
