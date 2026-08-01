@@ -124,7 +124,7 @@ export const analyzeOrganizer = createServerFn({ method: "POST" })
         risk_level: risk,
         recommendation: rec,
         reason: parsed.reason ?? "",
-        details: summary as unknown as Record<string, unknown>,
+        details: JSON.parse(JSON.stringify(summary)),
       })
       .select("id, trust_score, risk_level, recommendation, reason, created_at")
       .single();
