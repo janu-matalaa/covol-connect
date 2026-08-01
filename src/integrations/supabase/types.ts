@@ -405,6 +405,45 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_reports: {
+        Row: {
+          created_at: string
+          created_by: string
+          details: Json
+          id: string
+          organizer_id: string
+          reason: string
+          recommendation: string
+          risk_level: string
+          trust_score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          details?: Json
+          id?: string
+          organizer_id: string
+          reason?: string
+          recommendation?: string
+          risk_level?: string
+          trust_score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          details?: Json
+          id?: string
+          organizer_id?: string
+          reason?: string
+          recommendation?: string
+          risk_level?: string
+          trust_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
