@@ -23,15 +23,17 @@ type NavPath =
   | "/notifications" | "/profile" | "/verification" | "/admin-login";
 
 function Dashboard() {
-  const { role, user, isAdmin, organizerStatus, suspended } = useAuth();
-  if (!role || !user) {
+  const { role, user, isAdmin, organizerStatus, suspended, loading } = useAuth();
+  if (loading) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
+  if (!user) return <Navigate to="/auth" />;
   if (isAdmin) return <Navigate to="/admin" />;
+
   const pendingBanner =
     role === "organizer" && organizerStatus && organizerStatus !== "approved" ? (
       <Card className="p-4 border-yellow-500/40 bg-yellow-500/10 mb-6">
