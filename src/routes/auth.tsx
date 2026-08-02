@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,15 @@ function AuthPage() {
   const [role, setRole] = useState<"volunteer" | "organizer">("volunteer");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("verified") === "1") {
+      toast.success("Email verified successfully. You can now log in.");
+      window.history.replaceState({}, "", "/auth");
+    }
+  }, []);
+
   if (!loading && session) return <Navigate to="/dashboard" />;
+
 
   const errMessage = (err: unknown) => {
     const m =
@@ -50,7 +58,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: { full_name: fullName, role },
           },
         });
@@ -81,7 +89,19 @@ function AuthPage() {
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
-      toast.error(errMessage(err));
+      const msg = errMessage(err);
+      const notConfirmed = /confirm your email/i.test(msg);
+      if (notConfirmed && email) {
+        await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        toast.error("Email not confirmed — we sent you a fresh confirmation link.");
+      } else {
+        toast.error(msg);
+      }
+
     } finally {
       setBusy(false);
     }

@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthenticatedVerificationRouteImport } from './routes/_authenticated/verification'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -47,6 +48,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth_/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVerificationRoute =
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/verification': typeof AuthenticatedVerificationRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/admin/certificates': typeof AuthenticatedAdminCertificatesRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/organizers': typeof AuthenticatedAdminOrganizersRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/verification': typeof AuthenticatedVerificationRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/admin/certificates': typeof AuthenticatedAdminCertificatesRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/organizers': typeof AuthenticatedAdminOrganizersRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/verification': typeof AuthenticatedVerificationRoute
+  '/auth_/callback': typeof AuthCallbackRoute
   '/_authenticated/admin/certificates': typeof AuthenticatedAdminCertificatesRoute
   '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
   '/_authenticated/admin/organizers': typeof AuthenticatedAdminOrganizersRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/verification'
+    | '/auth/callback'
     | '/admin/certificates'
     | '/admin/events'
     | '/admin/organizers'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/verification'
+    | '/auth/callback'
     | '/admin/certificates'
     | '/admin/events'
     | '/admin/organizers'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/verification'
+    | '/auth_/callback'
     | '/_authenticated/admin/certificates'
     | '/_authenticated/admin/events'
     | '/_authenticated/admin/organizers'
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   AuthRoute: typeof AuthRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/callback': {
+      id: '/auth_/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/verification': {
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   AuthRoute: AuthRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
