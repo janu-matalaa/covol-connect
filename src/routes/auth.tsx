@@ -90,7 +90,19 @@ function AuthPage() {
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
-      toast.error(errMessage(err));
+      const msg = errMessage(err);
+      const notConfirmed = /confirm your email/i.test(msg);
+      if (notConfirmed && email) {
+        await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        toast.error("Email not confirmed — we sent you a fresh confirmation link.");
+      } else {
+        toast.error(msg);
+      }
+
     } finally {
       setBusy(false);
     }
