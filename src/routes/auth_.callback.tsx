@@ -81,7 +81,7 @@ function AuthCallback() {
         setTimeout(() => {
           if (cancelled) return;
           if (data.session) navigate({ to: "/dashboard" });
-          else navigate({ to: "/auth", search: { verified: "1" } as never });
+          else navigate({ href: "/auth?verified=1" });
         }, 1200);
       } catch (err) {
         if (cancelled) return;
