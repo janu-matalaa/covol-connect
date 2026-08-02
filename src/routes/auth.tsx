@@ -28,12 +28,25 @@ function AuthPage() {
 
   if (!loading && session) return <Navigate to="/dashboard" />;
 
+  const errMessage = (err: unknown) => {
+    const m =
+      err && typeof err === "object" && "message" in err
+        ? String((err as { message: unknown }).message ?? "")
+        : "";
+    if (/already registered|already exists|User already/i.test(m))
+      return "This email is already registered. Try signing in instead.";
+    if (/Invalid login credentials/i.test(m)) return "Incorrect email or password.";
+    if (/Email not confirmed/i.test(m))
+      return "Please confirm your email first — check your inbox for the confirmation link.";
+    return m || "Something went wrong. Please try again.";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -42,6 +55,21 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+
+        // Supabase returns a user with no identities when the email already exists.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          toast.error("This email is already registered. Try signing in instead.");
+          setMode("signin");
+          return;
+        }
+
+        if (!data.session) {
+          toast.success("Account created! Check your email to confirm, then sign in.");
+          setMode("signin");
+          setPassword("");
+          return;
+        }
+
         toast.success("Account created! You're signed in.");
         await refreshRole();
         navigate({ to: "/dashboard" });
@@ -53,11 +81,12 @@ function AuthPage() {
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(errMessage(err));
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="relative min-h-screen bg-background">
