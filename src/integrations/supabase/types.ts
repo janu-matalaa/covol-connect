@@ -461,6 +461,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved_organizer: { Args: { _user_id: string }; Returns: boolean }
+      shares_event_with: {
+        Args: { _target: string; _viewer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "volunteer" | "organizer" | "admin"
