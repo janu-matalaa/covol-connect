@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    verified: typeof search.verified === "string" ? search.verified : undefined,
+  }),
 });
 
 type Mode = "signin" | "signup";
@@ -19,6 +22,7 @@ type Mode = "signin" | "signup";
 function AuthPage() {
   const { session, loading, refreshRole } = useAuth();
   const navigate = useNavigate();
+  const { verified } = Route.useSearch();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +30,12 @@ function AuthPage() {
   const [role, setRole] = useState<"volunteer" | "organizer">("volunteer");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (verified === "1") toast.success("Email verified successfully. You can now log in.");
+  }, [verified]);
+
   if (!loading && session) return <Navigate to="/dashboard" />;
+
 
   const errMessage = (err: unknown) => {
     const m =
