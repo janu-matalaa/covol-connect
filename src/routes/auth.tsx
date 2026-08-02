@@ -57,7 +57,7 @@ function AuthPage() {
         if (error) throw error;
 
         // Supabase returns a user with no identities when the email already exists.
-        if (data.user && (data.user.identities?.length ?? 0) === 0) {
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
           toast.error("This email is already registered. Try signing in instead.");
           setMode("signin");
           return;
